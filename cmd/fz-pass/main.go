@@ -17,37 +17,54 @@ func configPath() string {
 	return filepath.Join(dir, "fz-pass", "vault.db")
 }
 
-func usage() {
-	fmt.Fprintln(os.Stdout, "usage: fz-pass <command> [args]")
-	fmt.Fprintln(os.Stdout, "commands:")
-	fmt.Fprintln(os.Stdout, "  init")
-	fmt.Fprintln(os.Stdout, "  add <service>")
-	fmt.Fprintln(os.Stdout, "  get <query>")
-	fmt.Fprintln(os.Stdout, "  list")
-	fmt.Fprintln(os.Stdout, "  pwd")
-	fmt.Fprintln(os.Stdout, "  import <source_path>")
-	fmt.Fprintln(os.Stdout, "  help")
+func printHelp() {
+	fmt.Fprintln(os.Stdout, "fz-pass - Minimalist, high-security terminal password manager.")
 	fmt.Fprintln(os.Stdout, "(c) AlexVoste")
+	fmt.Fprintln(os.Stdout)
+	fmt.Fprintln(os.Stdout, "Usage:")
+	fmt.Fprintln(os.Stdout, "  fz-pass <command> [arguments]")
+	fmt.Fprintln(os.Stdout)
+	fmt.Fprintln(os.Stdout, "Commands:")
+	fmt.Fprintln(os.Stdout, "  init                     Initialize a new secure cryptographic vault database.")
+	fmt.Fprintln(os.Stdout, "  add <service>            Start an interactive survey to securely add a service with dynamic fields.")
+	fmt.Fprintln(os.Stdout, "  get <query>              Retrieve decrypted credentials using prefix-based search.")
+	fmt.Fprintln(os.Stdout, "  list                     List all registered service names stored in the vault.")
+	fmt.Fprintln(os.Stdout, "  pwd                      Verify master password and print the absolute path to the database.")
+	fmt.Fprintln(os.Stdout, "  import <file>            Merge decrypted external JSON records into the active vault.")
+	fmt.Fprintln(os.Stdout, "  help                     Show this detailed reference screen.")
+	fmt.Fprintln(os.Stdout)
+	fmt.Fprintln(os.Stdout, "Core Engine Details:")
+	fmt.Fprintln(os.Stdout, "  - Cryptography: Hardened key derivation via PBKDF2 (SHA-256) / Argon2id, file encryption using AES-256-GCM.")
+	fmt.Fprintln(os.Stdout, "  - Dynamic Survey: Commands dynamically query for password (masked), login, email, phone, address, and notes.")
+	fmt.Fprintln(os.Stdout, "  - Prefix Search: Typing a short query (e.g., 'tel') automatically scans and matches entries.")
+	fmt.Fprintln(os.Stdout, "  - Zero-Overhead: Built with optimal memory layouts to ensure near-zero runtime allocations.")
+	fmt.Fprintln(os.Stdout)
+	fmt.Fprintln(os.Stdout, "fz-pass (c) AlexVoste")
 }
 
 func printFooter() {
-	fmt.Fprintln(os.Stdout, "(c) AlexVoste")
+	fmt.Fprintln(os.Stdout, "fz-pass (c) AlexVoste")
 }
 
 func printError(err error) {
 	fmt.Fprintln(os.Stderr, err)
-	fmt.Fprintln(os.Stderr, "(c) AlexVoste")
+	fmt.Fprintln(os.Stderr, "fz-pass (c) AlexVoste")
+}
+
+func printSuccess(message string) {
+	fmt.Fprintln(os.Stdout, message)
+	fmt.Fprintln(os.Stdout, "fz-pass (c) AlexVoste")
 }
 
 func main() {
 	if len(os.Args) < 2 {
-		usage()
+		printHelp()
 		os.Exit(2)
 	}
 	path := configPath()
 	switch os.Args[1] {
 	case "help":
-		usage()
+		printHelp()
 	case "init":
 		password, err := survey.PromptPassword("master password")
 		if err != nil {
@@ -73,11 +90,10 @@ func main() {
 			printError(err)
 			os.Exit(1)
 		}
-		fmt.Fprintln(os.Stdout, "vault initialized")
-		printFooter()
+		printSuccess("Vault initialized successfully.")
 	case "add":
 		if len(os.Args) != 3 {
-			usage()
+			printHelp()
 			os.Exit(2)
 		}
 		data, master, err := survey.CollectEntry(os.Args[2])
@@ -91,11 +107,10 @@ func main() {
 			printError(err)
 			os.Exit(1)
 		}
-		fmt.Fprintf(os.Stdout, "entry added for %s\n", os.Args[2])
-		printFooter()
+		printSuccess(fmt.Sprintf("Entry added for service: %s", os.Args[2]))
 	case "get":
 		if len(os.Args) != 3 {
-			usage()
+			printHelp()
 			os.Exit(2)
 		}
 		master, err := survey.PromptPassword("master password")
@@ -109,6 +124,7 @@ func main() {
 			printError(err)
 			os.Exit(1)
 		}
+		fmt.Fprintln(os.Stdout, "Retrieved entry:")
 		if len(matches) == 1 {
 			survey.PrintEntry(matches[0])
 			printFooter()
@@ -133,9 +149,9 @@ func main() {
 			printError(err)
 			os.Exit(1)
 		}
-		fmt.Fprintln(os.Stdout, "Services:")
+		fmt.Fprintln(os.Stdout, "Stored services:")
 		for i, service := range services {
-			fmt.Fprintf(os.Stdout, "%d. %s\n", i+1, service)
+			fmt.Fprintf(os.Stdout, "  %d. %s\n", i+1, service)
 		}
 		printFooter()
 	case "pwd":
@@ -155,11 +171,12 @@ func main() {
 			printError(err)
 			os.Exit(1)
 		}
+		fmt.Fprintln(os.Stdout, "Vault path:")
 		fmt.Fprintln(os.Stdout, abs)
 		printFooter()
 	case "import":
 		if len(os.Args) != 3 {
-			usage()
+			printHelp()
 			os.Exit(2)
 		}
 		master, err := survey.PromptPassword("master password")
@@ -173,10 +190,9 @@ func main() {
 			printError(err)
 			os.Exit(1)
 		}
-		fmt.Fprintln(os.Stdout, "import complete")
-		printFooter()
+		printSuccess("Import completed successfully.")
 	default:
-		usage()
+		printHelp()
 		os.Exit(2)
 	}
 }
