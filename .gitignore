@@ -1,0 +1,5 @@
+
+# artefacts 
+*.o 
+*.db 
+*.exe 
